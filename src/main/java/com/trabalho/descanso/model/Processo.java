@@ -8,12 +8,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Entity
 @Table(name = "processos")
 public class Processo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
     @Column(nullable = false, unique = true)
@@ -114,5 +117,12 @@ public class Processo {
     @Override
     public String toString() {
         return "Processo " + numero;
+    }
+
+    public void removerParticipante(Participante participante) {
+        if (participante == null) {
+            throw new IllegalArgumentException("Participante não pode ser nulo.");
+        }
+        this.partes.remove(participante);
     }
 }

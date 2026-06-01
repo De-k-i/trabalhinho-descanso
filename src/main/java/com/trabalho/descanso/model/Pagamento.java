@@ -4,13 +4,16 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Entity
 @Table(name = "pagamentos")
 public class Pagamento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id; // Deixamos o banco gerar o ID automaticamente
+    @Schema(accessMode = Schema.AccessMode.READ_ONLY)
+    private Integer id;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "usuario_id", nullable = false)

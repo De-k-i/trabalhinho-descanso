@@ -25,7 +25,7 @@ public class ProcessoController {
     private ProcessoService processoService;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
-    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
 
     @PostMapping
     public ResponseEntity<?> insert(@RequestBody Processo novoProcesso) {
@@ -89,6 +89,41 @@ public class ProcessoController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Erro interno no servidor.");
+        }
+    }
+
+    @DeleteMapping("/{numeroProcesso}/partes/{documentoParte}")
+    public ResponseEntity<?> removerParte(
+            @PathVariable String numeroProcesso,
+            @PathVariable String documentoParte) {
+
+        if (numeroProcesso == null || numeroProcesso.trim().isEmpty() ||
+                documentoParte == null || documentoParte.trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Erro: Número do processo e documento da parte são obrigatórios.");
+        }
+
+        try {
+            processoService.removerParte(numeroProcesso, documentoParte);
+
+            return ResponseEntity.noContent().build();
+
+        } catch (IllegalArgumentException e) {
+            String msg = e.getMessage();
+
+            // Se a mensagem for nula, evita chamar o .contains() diretamente
+            if (msg != null && (msg.contains("não encontrado") || msg.contains("não está vinculada"))) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Erro: " + msg);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Erro: " + (msg != null ? msg : "Requisição inválida."));
+        }
+
+        catch (
+
+        Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro interno no servidor: " + e.getMessage());
         }
     }
 

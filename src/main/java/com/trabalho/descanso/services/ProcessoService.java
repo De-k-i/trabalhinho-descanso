@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.trabalho.descanso.model.Pagamento;
 import com.trabalho.descanso.model.Parte;
+import com.trabalho.descanso.model.Participante;
 import com.trabalho.descanso.model.Processo;
 import com.trabalho.descanso.model.TipoParte;
 import com.trabalho.descanso.model.Usuario;
@@ -56,7 +57,8 @@ public class ProcessoService {
     public Processo getProcesso(String numero) {
         String chave = normalizarChave(numero);
         return processoRepository.findByNumero(chave)
-                .orElseThrow(() -> new IllegalArgumentException("Processo número '" + numero + "' não foi encontrado."));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("Processo número '" + numero + "' não foi encontrado."));
     }
 
     public List<Processo> listarTodos() {
@@ -74,17 +76,22 @@ public class ProcessoService {
         if (parte == null || parte.getDocumento() == null) {
             throw new IllegalArgumentException("Dados da parte inválidos para vinculação.");
         }
+
         Processo processo = getProcesso(numeroProcesso);
-        processo.adicionarParte(parte, tipo);
+
+        Parte partePersistida = parteService.getOrCreateParte(parte.getNome(), parte.getDocumento());
+
+        processo.adicionarParte(partePersistida, tipo);
+
         processoRepository.save(processo);
     }
 
     @Transactional
     public Pagamento adicionarPagamento(String numeroProcesso, Usuario solicitante, BigDecimal valor) {
         Processo processo = getProcesso(numeroProcesso);
-        
+
         Pagamento pagamento = pagamentoService.criarPagamento(solicitante, valor);
-        
+
         processo.adicionarPagamento(pagamento);
         processoRepository.save(processo);
         return pagamento;
@@ -98,7 +105,7 @@ public class ProcessoService {
     public void alterarParte(String numeroProcesso, String documentoParteAntiga, String nome, String documento) {
         Processo processo = getProcesso(numeroProcesso);
         Parte parteNova = parteService.getOrCreateParte(nome, documento);
-        
+
         Parte parteAntiga = processo.getPartes().stream()
                 .filter(p -> p.getParte().getDocumento().equals(documentoParteAntiga))
                 .findFirst()
@@ -116,5 +123,32 @@ public class ProcessoService {
             throw new IllegalStateException("Erro de integridade: Parte possui processos ativos.");
         }
         parteService.removerParte(documento);
+    }
+
+    @Transactional
+    public void removerParte(String numeroProcesso, String documentoParte) {
+        if (numeroProcesso == null || documentoParte == null) {
+            throw new IllegalArgumentException("Número do processo e documento da parte são obrigatórios.");
+        }
+
+        Processo processo = getProcesso(numeroProcesso);
+
+        if (processo.getPartes() == null) {
+            throw new IllegalStateException("A lista de partes do processo está nula no mapeamento da entidade.");
+        }
+
+        String docNormalizado = normalizarChave(documentoParte);
+
+        Participante vinculoEncontrado = processo.getPartes().stream()
+                .filter(v -> v != null
+                        && v.getParte() != null
+                        && v.getParte().getDocumento() != null
+                        && normalizarChave(v.getParte().getDocumento()).equals(docNormalizado))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Parte com o documento " + documentoParte + " não está vinculada a este processo."));
+
+        processo.removerParticipante(vinculoEncontrado);
+        processoRepository.save(processo);
     }
 }
