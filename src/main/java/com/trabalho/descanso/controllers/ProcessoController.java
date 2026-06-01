@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trabalho.descanso.model.Pagamento;
 import com.trabalho.descanso.model.Parte;
 import com.trabalho.descanso.model.Processo;
@@ -16,15 +17,15 @@ import com.trabalho.descanso.model.TipoParte;
 import com.trabalho.descanso.model.Usuario;
 import com.trabalho.descanso.services.ProcessoService;
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
-import tools.jackson.databind.ObjectMapper;
-
 @RestController
 @RequestMapping("/api/processos")
 public class ProcessoController {
 
     @Autowired
     private ProcessoService processoService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper()
+    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
 
     @PostMapping
     public ResponseEntity<?> insert(@RequestBody Processo novoProcesso) {
@@ -109,8 +110,7 @@ public class ProcessoController {
     public ResponseEntity<?> adicionarPagamento(@PathVariable String numero,
             @RequestBody Map<String, Object> payload) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            Usuario solicitante = mapper.convertValue(payload.get("solicitante"), Usuario.class);
+            Usuario solicitante = objectMapper.convertValue(payload.get("solicitante"), Usuario.class);
             BigDecimal valor = new BigDecimal(payload.get("valor").toString());
 
             Pagamento pagamento = processoService.adicionarPagamento(numero, solicitante, valor);

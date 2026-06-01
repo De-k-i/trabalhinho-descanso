@@ -1,20 +1,19 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.trabalho.descanso.model;
 
-/**
- *
- * @author deki
- */
+import jakarta.persistence.*;
+
+@Embeddable
 public class Participante {
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "parte_id")
     private Parte parte;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_parte")
     private TipoParte tipo;
 
     public Participante() {
-
     }
 
     public Participante(Parte parte, TipoParte tipo) {
@@ -37,6 +36,7 @@ public class Participante {
     }
 
     public String getTipo() {
+        if (tipo == null) return null;
         switch (tipo) {
             case REQUERENTE:
                 return "Requerente";
@@ -47,20 +47,21 @@ public class Participante {
         }
     }
 
+    public void setTipo(TipoParte tipo) {
+        this.tipo = tipo;
+    }
+
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || !(obj instanceof Participante)) {
-            return false;
-        }
-        return this.parte.equals(((Participante) obj).parte);
+        if (this == obj) return true;
+        if (obj == null || !(obj instanceof Participante)) return false;
+        Participante other = (Participante) obj;
+        if (this.parte == null || other.parte == null) return false;
+        return this.parte.equals(other.parte);
     }
 
     @Override
     public String toString() {
         return parte.getNome() + " - " + parte.getDocumento() + " - " + getTipo();
     }
-
 }

@@ -2,6 +2,7 @@ package com.trabalho.descanso.controllers;
 
 import com.trabalho.descanso.model.Parte;
 import com.trabalho.descanso.services.ParteService;
+import com.trabalho.descanso.services.ProcessoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,9 @@ public class ParteController {
 
     @Autowired
     private ParteService parteService;
+
+    @Autowired
+    private ProcessoService processoService;
 
     @PostMapping
     public ResponseEntity<?> insert(@RequestBody Parte novaParte) {
@@ -59,8 +63,8 @@ public class ParteController {
             if (dadosAtualizados.getNome() == null || dadosAtualizados.getNome().trim().isEmpty()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Erro: O novo nome não pode ser vazio.");
             }
-            Parte atualizada = parteService.alterarNomeParte(documento, dadosAtualizados.getNome());
-            return ResponseEntity.ok(atualizada);
+            Parte updated = parteService.alterarNomeParte(documento, dadosAtualizados.getNome());
+            return ResponseEntity.ok(updated);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -71,7 +75,7 @@ public class ParteController {
     @DeleteMapping("/{documento}")
     public ResponseEntity<?> delete(@PathVariable String documento) {
         try {
-            parteService.removerParte(documento);
+            processoService.deletarParteComValidaçao(documento);
             return ResponseEntity.noContent().build();
             
         } catch (IllegalArgumentException e) {

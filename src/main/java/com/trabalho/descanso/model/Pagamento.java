@@ -1,39 +1,42 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.trabalho.descanso.model;
 
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/**
- *
- * @author deki
- */
+@Entity
+@Table(name = "pagamentos")
 public class Pagamento {
 
-    private int id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id; // Deixamos o banco gerar o ID automaticamente
+
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario solicitante;
+
+    @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal valor;
+
     private Instant dataSolicitacao;
     private Instant dataProcessamento;
     private Instant dataPagamento;
     private Instant dataCancelamento;
+
+    @Enumerated(EnumType.STRING)
     private StatusPagamento status;
     
     public Pagamento() {
-        
     }
     
-    public Pagamento(int id, Usuario solicitante, BigDecimal valor) {
+    public Pagamento(Usuario solicitante, BigDecimal valor) {
         if (solicitante == null) {
             throw new IllegalArgumentException("Solicitante não pode ser nulo!");
         }
         if (valor == null || valor.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("Valor deve ser positivo!");
         }
-        this.id = id;
         this.solicitante = solicitante;
         this.valor = valor;
         this.dataSolicitacao = Instant.now();
@@ -64,8 +67,12 @@ public class Pagamento {
         this.dataCancelamento = Instant.now();
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public BigDecimal getValor() {
@@ -95,5 +102,4 @@ public class Pagamento {
     public Instant getDataCancelamento() {
         return dataCancelamento;
     }
-
 }

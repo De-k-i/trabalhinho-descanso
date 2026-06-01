@@ -1,26 +1,25 @@
 package com.trabalho.descanso.services;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.hibernate.validator.internal.util.stereotypes.Lazy;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.trabalho.descanso.model.Pagamento;
 import com.trabalho.descanso.model.Parte;
-import com.trabalho.descanso.model.Participante;
 import com.trabalho.descanso.model.Processo;
 import com.trabalho.descanso.model.TipoParte;
 import com.trabalho.descanso.model.Usuario;
+import com.trabalho.descanso.repositories.ProcessoRepository;
 
 @Service
 public class ProcessoService {
 
-    private final Map<String, Processo> processos = new HashMap<>();
+    @Autowired
+    private ProcessoRepository processoRepository;
 
     @Autowired
     @Lazy
@@ -36,6 +35,7 @@ public class ProcessoService {
         return input.replaceAll("\\W", "").toUpperCase();
     }
 
+    @Transactional
     public Processo adicionarProcesso(Processo novoProcesso) {
         if (novoProcesso.getNumero() == null || novoProcesso.getNumero().trim().isEmpty()) {
             throw new IllegalArgumentException("Número do processo é obrigatório.");
@@ -46,65 +46,59 @@ public class ProcessoService {
 
         String chave = normalizarChave(novoProcesso.getNumero());
 
-        if (processos.containsKey(chave)) {
+        if (processoRepository.existsByNumero(chave)) {
             throw new IllegalStateException("Processo já cadastrado com este número.");
         }
         Processo processo = new Processo(novoProcesso.getNumero(), novoProcesso.getJuizo());
-        processos.put(chave, processo);
-        return processo;
+        return processoRepository.save(processo);
     }
 
     public Processo getProcesso(String numero) {
         String chave = normalizarChave(numero);
-        Processo processo = processos.get(chave);
-
-        if (processo == null) {
-            throw new IllegalArgumentException("Processo número '" + numero + "' não foi encontrado.");
-        }
-        return processo;
+        return processoRepository.findByNumero(chave)
+                .orElseThrow(() -> new IllegalArgumentException("Processo número '" + numero + "' não foi encontrado."));
     }
 
     public List<Processo> listarTodos() {
-        return new ArrayList<>(processos.values());
+        return processoRepository.findAll();
     }
 
+    @Transactional
     public void removerProcesso(String numero) {
-        String chave = normalizarChave(numero);
-        getProcesso(chave);
-        processos.remove(chave);
+        Processo processo = getProcesso(numero);
+        processoRepository.delete(processo);
     }
 
+    @Transactional
     public void vincularParte(String numeroProcesso, Parte parte, TipoParte tipo) {
         if (parte == null || parte.getDocumento() == null) {
             throw new IllegalArgumentException("Dados da parte inválidos para vinculação.");
         }
         Processo processo = getProcesso(numeroProcesso);
         processo.adicionarParte(parte, tipo);
+        processoRepository.save(processo);
     }
 
+    @Transactional
     public Pagamento adicionarPagamento(String numeroProcesso, Usuario solicitante, BigDecimal valor) {
         Processo processo = getProcesso(numeroProcesso);
+        
         Pagamento pagamento = pagamentoService.criarPagamento(solicitante, valor);
-        return processo.adicionarPagamento(pagamento);
+        
+        processo.adicionarPagamento(pagamento);
+        processoRepository.save(processo);
+        return pagamento;
     }
 
     public List<Processo> getProcessosByParte(String documento) {
-        String documentoAlvo = normalizarChave(documento);
-        List<Processo> processosComParte = new ArrayList<>();
-        for (Processo processo : processos.values()) {
-            for (Participante p : processo.getPartes()) {
-                String docParte = normalizarChave(p.getParte().getDocumento());
-                if (docParte.equals(documentoAlvo)) {
-                    processosComParte.add(processo);
-                }
-            }
-        }
-        return processosComParte;
+        return processoRepository.findByParteDocumento(normalizarChave(documento));
     }
 
+    @Transactional
     public void alterarParte(String numeroProcesso, String documentoParteAntiga, String nome, String documento) {
         Processo processo = getProcesso(numeroProcesso);
         Parte parteNova = parteService.getOrCreateParte(nome, documento);
+        
         Parte parteAntiga = processo.getPartes().stream()
                 .filter(p -> p.getParte().getDocumento().equals(documentoParteAntiga))
                 .findFirst()
@@ -112,8 +106,10 @@ public class ProcessoService {
                 .getParte();
 
         processo.alterarParte(parteAntiga, parteNova);
+        processoRepository.save(processo);
     }
 
+    @Transactional
     public void deletarParteComValidaçao(String documento) {
         List<Processo> processosVinculados = getProcessosByParte(documento);
         if (!processosVinculados.isEmpty()) {

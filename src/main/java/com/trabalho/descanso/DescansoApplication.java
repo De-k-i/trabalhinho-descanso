@@ -7,6 +7,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.trabalho.descanso.model.Juizo;
 import com.trabalho.descanso.model.Parte;
@@ -16,6 +17,8 @@ import com.trabalho.descanso.model.Usuario;
 import com.trabalho.descanso.services.LocalizacaoService;
 import com.trabalho.descanso.services.ParteService;
 import com.trabalho.descanso.services.ProcessoService;
+
+import jakarta.persistence.EntityManager;
 
 @SpringBootApplication
 public class DescansoApplication {
@@ -29,13 +32,18 @@ public class DescansoApplication {
     @Autowired
     private LocalizacaoService localizacaoService;
 
+    @Autowired
+    private EntityManager entityManager;
+
     public static void main(String[] args) {
         SpringApplication.run(DescansoApplication.class, args);
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @Transactional
     public void inicializarDados() {
         try {
+            
             Juizo juizo = localizacaoService.getOrCreateJuizo(
                     "SC",
                     "Florianopolis",
@@ -56,10 +64,11 @@ public class DescansoApplication {
 
             Usuario u = new Usuario();
             u.setNome("Carlos");
+            entityManager.persist(u);
             
             processoService.adicionarPagamento("123", u, new BigDecimal("100.50"));
             
-            System.out.println(">>> Banco de dados em memória inicializado com sucesso para testes! <<<");
+            System.out.println(">>> Banco de dados MariaDB inicializado com sucesso com dados de teste! <<<");
 
         } catch (Exception e) {
             System.err.println("Erro ao inicializar carga de dados: " + e.getMessage());

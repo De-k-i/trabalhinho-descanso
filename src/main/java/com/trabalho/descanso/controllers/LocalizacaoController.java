@@ -25,7 +25,7 @@ public class LocalizacaoController {
             @RequestParam String juizo) {
         try {
             Juizo juizoInstancia = localizacaoService.getOrCreateJuizo(estado, comarca, competencia, juizo);
-            return ResponseEntity.status(HttpStatus.OK).body(juizoInstancia);
+            return ResponseEntity.status(HttpStatus.CREATED).body(juizoInstancia);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Erro: " + e.getMessage());
         } catch (Exception e) {
